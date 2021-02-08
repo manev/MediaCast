@@ -1,0 +1,40 @@
+﻿<UserControl x:Class="ClientApp.MediaPlayerHost"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:ClientApp"
+             xmlns:uc="clr-namespace:LibVLCSharp.WPF;assembly=LibVLCSharp.WPF"
+             mc:Ignorable="d" 
+             d:DesignHeight="450" d:DesignWidth="800">
+    <Grid>
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"></RowDefinition>
+            <RowDefinition Height="Auto"></RowDefinition>
+        </Grid.RowDefinitions>
+
+        <uc:VideoView x:Name="videoView" Margin="50 0" HorizontalAlignment="Stretch" VerticalContentAlignment="Stretch">
+        </uc:VideoView>
+
+        <StackPanel Grid.Row="1" x:Name="controlPanel" Visibility="Collapsed" Margin="50 5 50 5">
+            <DockPanel>
+                <Label DockPanel.Dock="Left" Name="startLbl" FontWeight="Bold" />
+                <Label DockPanel.Dock="Right" Name="endLbl" FontWeight="Bold" />
+                <Slider Name="slider" Thumb.DragCompleted="SliderValueChanged" Margin="0 3 0 0" Thumb.DragStarted="OnSliderDragStarted"  />
+            </DockPanel>
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                    <Button Margin="10 0 0 0" Content="Pause" Click="PauseVideo" HorizontalAlignment="Left"></Button>
+                    <Button Margin="10 0 0 0" Content="Stop" Click="StopVideo" HorizontalAlignment="Left"></Button>
+                    <Button Margin="10 0 0 0" Content="Play" Click="PlayVideo" HorizontalAlignment="Left"></Button>
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Margin="10 0 0 0" Content="Full Screen" Click="FullScreenVideo" HorizontalAlignment="Left"></Button>
+                </StackPanel>
+            </StackPanel>
+        </StackPanel>
+    </Grid>
+</UserControl>
