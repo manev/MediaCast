@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -18,7 +19,7 @@ namespace ClientApp
 
         private readonly string _libFileName = "libs.json";
 
-        private IEnumerable<MediaElement> _currenMedia;
+        private ObservableCollection<MediaElement> _currenMedia;
 
         private string LibPath
         {
@@ -39,12 +40,12 @@ namespace ClientApp
                     throw new ArgumentNullException(nameof(path));
                 }
 
-                _currenMedia = GetMediaElements(path);
+                _currenMedia = new ObservableCollection<MediaElement>(GetMediaElements(path));
 
                 return _currenMedia;
             }
 
-            return null;
+            return _currenMedia;
         }
 
         internal void Save()
@@ -65,13 +66,13 @@ namespace ClientApp
             {
                 var content = File.ReadAllText(LibPath);
 
-                _currenMedia = JsonSerializer.Deserialize<IEnumerable<MediaElement>>(content);
-
-                var list = _currenMedia.ToList();
+                var list = JsonSerializer.Deserialize<IEnumerable<MediaElement>>(content).ToList();
 
                 list.Sort();
 
-                return list.AsEnumerable();
+                _currenMedia = new ObservableCollection<MediaElement>(list);
+
+                return _currenMedia;
             }
 
             return Enumerable.Empty<MediaElement>();
@@ -80,6 +81,28 @@ namespace ClientApp
         public IEnumerable<MediaElement> LoadLibrary(string path)
         {
             return GetMediaElements(path);
+        }
+
+        public void Remove(MediaElement mediaElement)
+        {
+            if (mediaElement != null)
+            {
+                _currenMedia.Remove(mediaElement);
+            }
+        }
+
+        public void HardRemove(MediaElement mediaElement)
+        {
+            if (mediaElement.IsFile && File.Exists(mediaElement.FullPath))
+            {
+                File.Delete(mediaElement.FullPath);
+            }
+            else if (Directory.Exists(mediaElement.FullPath))
+            {
+                Directory.Delete(mediaElement.FullPath, true);
+            }
+
+            Remove(mediaElement);
         }
 
         private bool TryGetUserSelectedFolder(ref string path)
@@ -104,9 +127,9 @@ namespace ClientApp
 
             var list = folder.GetFiles()
                         .Where(x => _mediaFormatTypes.Contains(x.Extension.ToUpper()))
-                        .Select(x => new MediaElement { Name = x.Name, FullPath = x.FullName, IsFile = true })
+                        .Select(x => new MediaElement { Name = x.Name, FullPath = x.FullName.Trim(), IsFile = true })
                         .Union(folder.GetDirectories()
-                            .Select(x => new MediaElement { Name = x.Name, FullPath = x.FullName, IsFile = false }))
+                            .Select(x => new MediaElement { Name = x.Name, FullPath = x.FullName.Trim(), IsFile = false }))
                         .ToList();
 
             list.Sort();

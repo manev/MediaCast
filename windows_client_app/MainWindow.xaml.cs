@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 
 namespace ClientApp
 {
@@ -20,41 +21,20 @@ namespace ClientApp
 
             _mediaLib = new MediaLibrary();
 
-            _fullScreenManager = new FullScreenManager(this, ExitFullScreen);
+            _fullScreenManager = new FullScreenManager(this, EnterFullScreen, ExitFullScreen);
 
             Closing += WindowClosing;
 
             Loaded += OnWindowLoaded;
         }
 
-        private void ExitFullScreen()
-        {
-            mediaList.Visibility = Visibility.Visible;
-            toolbar.Visibility = Visibility.Visible;
+        private void OnWindowLoaded(object sender, RoutedEventArgs e) => LoadSavedLibrary();
 
-            Grid.SetColumn(mediaPanel, 2);
-            Grid.SetColumnSpan(mediaElement, 1);
-        }
+        private void WindowClosing(object sender, CancelEventArgs e) => _mediaLib.Save();
 
-        private void OnWindowLoaded(object sender, RoutedEventArgs e)
-        {
-            LoadSavedLibrary();
-        }
+        private void LoadSavedLibrary() => mediaList.ItemsSource = _mediaLib.GetSavedLibrary();
 
-        private void WindowClosing(object sender, CancelEventArgs e)
-        {
-            _mediaLib.Save();
-        }
-
-        private void LoadSavedLibrary()
-        {
-            mediaList.ItemsSource = _mediaLib.GetSavedLibrary();
-        }
-
-        private void AddLibClickHandler(object sender, RoutedEventArgs e)
-        {
-            mediaList.ItemsSource = _mediaLib.CreateLibrary();
-        }
+        private void AddLibClickHandler(object sender, RoutedEventArgs e) => mediaList.ItemsSource = _mediaLib.CreateLibrary();
 
         private void DeleteCurrentLib(object sender, RoutedEventArgs e)
         {
@@ -109,21 +89,32 @@ namespace ClientApp
             }
         }
 
-        private void ConnectChromeCast(object sender, RoutedEventArgs e)
+        private void ConnectChromeCast(object sender, RoutedEventArgs e) => chromeCastList.Visibility = Visibility.Visible;
+
+        private void OnToggleFullScreenHandler(object sender, EventArgs e) => _fullScreenManager.ToggleFullScreen();
+
+        private void ExitFullScreen()
         {
-            chromeCastList.Visibility = Visibility.Visible;
+            mediaList.Visibility = Visibility.Visible;
+            toolbar.Visibility = Visibility.Visible;
+            splitter.Visibility = Visibility.Visible;
+
+            Grid.SetColumn(mediaPanel, 2);
+            Grid.SetColumnSpan(mediaElement, 1);
+
+            mediaElement.ToggleFullScreenMode();
         }
 
-        private void OnToggleFullScreenHandler(object sender, EventArgs e)
+        private void EnterFullScreen()
         {
             mediaList.Visibility = Visibility.Collapsed;
             toolbar.Visibility = Visibility.Collapsed;
-
+            splitter.Visibility = Visibility.Collapsed;
 
             Grid.SetColumnSpan(mediaPanel, 3);
             Grid.SetColumn(mediaPanel, 0);
 
-            _fullScreenManager.EnterFullScreen();
+            mediaElement.ToggleFullScreenMode();
         }
 
         private void OnVideoEnded(object sender, EventArgs e)
@@ -133,5 +124,45 @@ namespace ClientApp
                 mediaList.SelectedItem = mediaList.Items[mediaList.SelectedIndex + 1];
             }
         }
+
+        private void ShowMediaList(object sender, RoutedEventArgs e)
+        {
+            firstGridColumn.Width = GridLength.Auto;
+
+            if (mediaList != null)
+            {
+                mediaList.Visibility = Visibility.Visible;
+
+                splitter.Visibility = Visibility.Visible;
+            }
+        }
+
+        private void HideMediaList(object sender, RoutedEventArgs e)
+        {
+            firstGridColumn.Width = new GridLength(40);
+
+            if (mediaList != null)
+            {
+                mediaList.Visibility = Visibility.Collapsed;
+
+                splitter.Visibility = Visibility.Collapsed;
+            }
+        }
+
+        private void OnDelete(object sender, RoutedEventArgs e) => _mediaLib.Remove(mediaList.SelectedItem as MediaElement);
+
+        private void OnHardDelete(object sender, RoutedEventArgs e) => _mediaLib.HardRemove(mediaList.SelectedItem as MediaElement);
+
+        private void OnClose(object sender, RoutedEventArgs e) => Close();
+
+        private void OnMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ChangedButton == MouseButton.Left)
+            {
+                DragMove();
+            }
+        }
+
+        private void OnDoubleClick(object sender, MouseButtonEventArgs e) => _fullScreenManager.ToggleWindowState();
     }
 }
