@@ -32,7 +32,7 @@
 
         <uc:VideoView x:Name="videoView" Margin="10" HorizontalAlignment="Stretch" VerticalContentAlignment="Stretch">
             <Grid Background="#01000000" PreviewMouseWheel="OnVolumeChanged" MouseDown="VideoClick"
-                  MouseMove="VideoOverlayMouseMove"
+                  MouseMove="VideoOverlayMouseMove" Visibility="Collapsed"
                   HorizontalAlignment="Stretch" VerticalAlignment="Stretch" x:Name="overlay">
             </Grid>
         </uc:VideoView>

@@ -4,10 +4,13 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using ControlzEx.Theming;
+using MahApps.Metro.Controls;
+using MahApps.Metro.Controls.Dialogs;
 
 namespace ClientApp
 {
-    public partial class MainWindow : Window
+    public partial class MainWindow : MetroWindow
     {
         private string _currentPath = string.Empty;
 
@@ -26,13 +29,22 @@ namespace ClientApp
             Closing += WindowClosing;
 
             Loaded += OnWindowLoaded;
+
+            ThemeManager.Current.ThemeSyncMode = ThemeSyncMode.SyncWithAppMode;
+            ThemeManager.Current.SyncTheme();
+
+            Google.Apis.YouTube.v3.YouTubeService.Initializer a = new Google.Apis.Services.BaseClientService.Initializer();
+            Google.Apis.YouTube.v3.YouTubeService b = new Google.Apis.YouTube.v3.YouTubeService();
         }
 
         private void OnWindowLoaded(object sender, RoutedEventArgs e) => LoadSavedLibrary();
 
         private void WindowClosing(object sender, CancelEventArgs e) => _mediaLib.Save();
 
-        private void LoadSavedLibrary() => mediaList.ItemsSource = _mediaLib.GetSavedLibrary();
+        private void LoadSavedLibrary()
+        {
+            mediaList.ItemsSource = _mediaLib.GetSavedLibrary();
+        }
 
         private void AddLibClickHandler(object sender, RoutedEventArgs e) => mediaList.ItemsSource = _mediaLib.CreateLibrary();
 
@@ -97,9 +109,7 @@ namespace ClientApp
         {
             mediaList.Visibility = Visibility.Visible;
             toolbar.Visibility = Visibility.Visible;
-            splitter.Visibility = Visibility.Visible;
 
-            Grid.SetColumn(mediaPanel, 2);
             Grid.SetColumnSpan(mediaElement, 1);
 
             mediaElement.ToggleFullScreenMode();
@@ -109,10 +119,6 @@ namespace ClientApp
         {
             mediaList.Visibility = Visibility.Collapsed;
             toolbar.Visibility = Visibility.Collapsed;
-            splitter.Visibility = Visibility.Collapsed;
-
-            Grid.SetColumnSpan(mediaPanel, 3);
-            Grid.SetColumn(mediaPanel, 0);
 
             mediaElement.ToggleFullScreenMode();
         }
@@ -122,30 +128,6 @@ namespace ClientApp
             if (mediaList.Items.Count > mediaList.SelectedIndex + 1)
             {
                 mediaList.SelectedItem = mediaList.Items[mediaList.SelectedIndex + 1];
-            }
-        }
-
-        private void ShowMediaList(object sender, RoutedEventArgs e)
-        {
-            firstGridColumn.Width = GridLength.Auto;
-
-            if (mediaList != null)
-            {
-                mediaList.Visibility = Visibility.Visible;
-
-                splitter.Visibility = Visibility.Visible;
-            }
-        }
-
-        private void HideMediaList(object sender, RoutedEventArgs e)
-        {
-            firstGridColumn.Width = new GridLength(40);
-
-            if (mediaList != null)
-            {
-                mediaList.Visibility = Visibility.Collapsed;
-
-                splitter.Visibility = Visibility.Collapsed;
             }
         }
 
@@ -164,5 +146,9 @@ namespace ClientApp
         }
 
         private void OnDoubleClick(object sender, MouseButtonEventArgs e) => _fullScreenManager.ToggleWindowState();
+
+        private void OnHamburgerButtonClick(object sender, RoutedEventArgs e)
+        {
+        }
     }
 }

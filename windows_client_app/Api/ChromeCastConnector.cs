@@ -1,21 +1,17 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
-using System.Text.Json;
 
 namespace ClientApp
 {
     internal class ChromeCastConnector
     {
-        private IPAddress _localIpAddress;
+        private IPAddress? _localIpAddress;
 
         public void PlayVideo(string path)
         {
-
         }
 
         public void Initialize()
@@ -37,26 +33,6 @@ namespace ClientApp
 
         public void Connect()
         {
-
-        }
-
-        public IEnumerable<ChromeCastClient> GetChromeCastDevices()
-        {
-            const string port = "8080";
-
-            string baseAddress = $"http://{_localIpAddress}:{port}/ping";
-
-            var request = WebRequest.Create(baseAddress);
-
-            request.Method = "GET";
-
-            using var responseStream = request.GetResponse();
-
-            var reader = new StreamReader(responseStream.GetResponseStream());
-
-            var result = reader.ReadToEnd();
-
-            return JsonSerializer.Deserialize<IEnumerable<ChromeCastClient>>(result, new JsonSerializerOptions { PropertyNameCaseInsensitive = true } );
         }
     }
 }

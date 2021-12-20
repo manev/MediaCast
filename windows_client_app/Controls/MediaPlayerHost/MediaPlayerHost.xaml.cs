@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -15,12 +16,14 @@ namespace ClientApp
 {
     public partial class MediaPlayerHost : UserControl
     {
-        private LibVLC _libVLC;
-        private RendererDiscoverer _rendererDiscoverer;
+        private bool _isLoaded = false;
         private bool _isSliderDragStarted = false;
         private bool _isFullScreenMode = false;
         private bool _isShowAnimationStarted = false;
         private bool _isMouseOverControlPanel = false;
+
+        private LibVLC _libVLC;
+        private RendererDiscoverer _rendererDiscoverer;
         private DispatcherTimer _showControlPanelTimer = new DispatcherTimer();
 
         public Uri Source { get; set; }
@@ -31,20 +34,9 @@ namespace ClientApp
         {
             InitializeComponent();
 
-            videoView.Loaded += OnVideoViewLoaded;
-
             Unloaded += OnUnload;
 
             Loaded += OnLoaded;
-        }
-
-        private void OnVolumeChanged(object sender, MouseWheelEventArgs e)
-        {
-            videoView.MediaPlayer.Volume += e.Delta > 0 ? 5 : -5;
-
-            volumeSlider.Value = videoView.MediaPlayer.Volume;
-
-            videoView.MediaPlayer.SetMarqueeString(VideoMarqueeOption.Text, videoView.MediaPlayer.Volume.ToString());
         }
 
         public void ToggleFullScreenMode()
@@ -65,9 +57,7 @@ namespace ClientApp
         {
             if (Source != null)
             {
-                // this._parent.VideoView.MediaPlayer.SetRenderer(items.First());
-
-                if (videoView.MediaPlayer.IsPlaying)
+                if (videoView?.MediaPlayer?.IsPlaying == true)
                 {
                     StopMedia();
                 }
@@ -76,20 +66,27 @@ namespace ClientApp
 
                 TryLoadSubtitlesFile();
 
-                SetSetMarquee();
+                SetMarquee();
 
                 media.AddOption(":subsdec-encoding=CP1251");
 
-                videoView.MediaPlayer.Play(media);
+                videoView?.MediaPlayer?.Play(media);
 
-                videoView.MediaPlayer.SetVideoTitleDisplay(Position.Top, 1000);
-
-                // videoView.MediaPlayer.Mute = true;
+                videoView?.MediaPlayer?.SetVideoTitleDisplay(Position.Top, 1000);
 
                 videoView.MediaPlayer.Volume = 20;
 
                 volumeSlider.Value = videoView.MediaPlayer.Volume;
             }
+        }
+
+        private void OnVolumeChanged(object sender, MouseWheelEventArgs e)
+        {
+            videoView.MediaPlayer.Volume += e.Delta > 0 ? 5 : -5;
+
+            volumeSlider.Value = videoView.MediaPlayer.Volume;
+
+            videoView.MediaPlayer.SetMarqueeString(VideoMarqueeOption.Text, videoView.MediaPlayer.Volume.ToString());
         }
 
         private void TryLoadSubtitlesFile()
@@ -104,7 +101,7 @@ namespace ClientApp
             }
         }
 
-        private void SetSetMarquee()
+        private void SetMarquee()
         {
             videoView.MediaPlayer.SetMarqueeInt(VideoMarqueeOption.Enable, 1);
             videoView.MediaPlayer.SetMarqueeInt(VideoMarqueeOption.Timeout, 5000);
@@ -112,14 +109,17 @@ namespace ClientApp
             videoView.MediaPlayer.SetMarqueeInt(VideoMarqueeOption.Y, 50);
         }
 
-        private void OnLoaded(object sender, RoutedEventArgs e)
+        private async void OnLoaded(object sender, RoutedEventArgs e)
         {
-        }
+            if (_isLoaded) return;
 
-        private void OnVideoViewLoaded(object sender, RoutedEventArgs e)
-        {
+            _isLoaded = true;
+
+            Core.Initialize();
+
             _libVLC = new LibVLC(enableDebugLogs: true, ":rmtosd-mouse-events", ":mouse-events", " :video-on-top", ":hotkeys-x-wheel-mode=0");
             _libVLC.Log += LibVLC_Log;
+
             videoView.MediaPlayer = new MediaPlayer(_libVLC) { EnableHardwareDecoding = true };
             videoView.MediaPlayer.Playing += OnMediaStartPlaying;
             videoView.MediaPlayer.TimeChanged += OnMediaPlayerTimeChanged;
@@ -128,11 +128,9 @@ namespace ClientApp
             videoView.MediaPlayer.Paused += MediaPlayerPaused;
             videoView.MediaPlayer.Stopped += MediaPlayerStopped;
 
-            //var media = new Media(_libVLC, "https://www.youtube.com/watch?v=vkPKA3ulaCg&ab_channel=ToToYotov", FromType.FromLocation);
+            //var media = new Media(_libVLC, new Uri("https://www.youtube.com/watch?v=aqz-KE-bpKQ"));
             //await media.Parse(MediaParseOptions.ParseNetwork);
-            //_parent.VideoView.MediaPlayer = _mediaPlayer;
-            //_parent.VideoView.MediaPlayer.Mute = true;
-            //_parent.VideoView.MediaPlayer.Play(media.SubItems.First());
+            //videoView.MediaPlayer.Play(media.SubItems.First());
 
             //var renderer = _libVLC.RendererList.FirstOrDefault(r => r.Name.Equals("microdns_renderer"));
             //_rendererDiscoverer = new RendererDiscoverer(_libVLC, renderer.Name);
@@ -143,10 +141,6 @@ namespace ClientApp
         private void LibVLC_Log(object sender, LogEventArgs e)
         {
             var a = e.Message;
-        }
-
-        private void load(object sender, RoutedEventArgs e)
-        {
         }
 
         private void MediaPlayerStopped(object sender, EventArgs e) => SyncInUIThread(() => playPauseIcon.Kind = PackIconKind.Play);
@@ -234,10 +228,8 @@ namespace ClientApp
             }
         }
 
-        private void OnVolumeSliderChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
+        private void OnVolumeSliderChanged(object sender, RoutedPropertyChangedEventArgs<double> e) =>
             videoView.MediaPlayer.Volume = (int)volumeSlider.Value;
-        }
 
         private void AnimateControlPanelVisibility(string resourceAnimation)
         {

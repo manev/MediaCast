@@ -12,22 +12,16 @@ namespace ClientApp
 {
     internal class MediaLibrary
     {
-        private readonly string[] _mediaFormatTypes = new string[]
+        private readonly string[] _mediaFormatTypes = new[]
         {
             ".WEBM", ".MPG", ".MP2", ".MPEG", ".MPE", ".MPV", ".OGG", ".MP4", ".M4P", ".M4V", ".AVI", ".WMV",".MOV", ".MKV", ".MP3", ".MP4"
         };
 
         private readonly string _libFileName = "libs.json";
 
-        private ObservableCollection<MediaElement> _currenMedia;
+        private ObservableCollection<MediaElement>? _currenMedia;
 
-        private string LibPath
-        {
-            get
-            {
-                return Path.Combine(Directory.GetParent(Assembly.GetExecutingAssembly().Location).FullName, _libFileName);
-            }
-        }
+        private string LibPath => Path.Combine(Directory.GetParent(Assembly.GetExecutingAssembly().Location)?.FullName, _libFileName);
 
         public IEnumerable<MediaElement> CreateLibrary()
         {
@@ -57,20 +51,22 @@ namespace ClientApp
 
         internal void DeleteCurrentLibrary()
         {
-            _currenMedia = null;
+            _currenMedia = new ObservableCollection<MediaElement>();
         }
 
         internal IEnumerable<MediaElement> GetSavedLibrary()
         {
             if (File.Exists(LibPath))
             {
-                var content = File.ReadAllText(LibPath);
+                string? content = File.ReadAllText(LibPath);
 
-                var list = JsonSerializer.Deserialize<IEnumerable<MediaElement>>(content).ToList();
+                var list = string.IsNullOrWhiteSpace(content) ?
+                    new List<MediaElement>() :
+                    JsonSerializer.Deserialize<IEnumerable<MediaElement>>(content)?.ToList();
 
-                list.Sort();
+                list?.Sort();
 
-                _currenMedia = new ObservableCollection<MediaElement>(list);
+                _currenMedia = new ObservableCollection<MediaElement>(list ?? new List<MediaElement>());
 
                 return _currenMedia;
             }
@@ -78,10 +74,7 @@ namespace ClientApp
             return Enumerable.Empty<MediaElement>();
         }
 
-        public IEnumerable<MediaElement> LoadLibrary(string path)
-        {
-            return GetMediaElements(path);
-        }
+        public IEnumerable<MediaElement> LoadLibrary(string path) => GetMediaElements(path);
 
         public void Remove(MediaElement mediaElement)
         {
@@ -129,7 +122,7 @@ namespace ClientApp
                         .Where(x => _mediaFormatTypes.Contains(x.Extension.ToUpper()))
                         .Select(x => new MediaElement { Name = x.Name, FullPath = x.FullName.Trim(), IsFile = true })
                         .Union(folder.GetDirectories()
-                            .Select(x => new MediaElement { Name = x.Name, FullPath = x.FullName.Trim(), IsFile = false }))
+                                     .Select(x => new MediaElement { Name = x.Name, FullPath = x.FullName.Trim(), IsFile = false }))
                         .ToList();
 
             list.Sort();
