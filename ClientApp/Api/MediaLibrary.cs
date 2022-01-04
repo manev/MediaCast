@@ -1,133 +1,206 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.IO;
-using System.Linq;
-using System.Reflection;
-using System.Text.Json;
+﻿using MahApps.Metro.Controls.Dialogs;
 using System.Windows.Forms;
 
-namespace ClientApp
+namespace MediaCast;
+
+internal class MediaLibrary : ViewModelBase
 {
-    internal class MediaLibrary
+    private readonly string[] _mediaFormatTypes = new[]
     {
-        private readonly string[] _mediaFormatTypes = new[]
+        ".WEBM", ".MPG", ".MP2", ".MPEG", ".MPE", ".MPV", ".OGG", ".MP4", ".M4P", ".M4V", ".AVI", ".WMV",".MOV", ".MKV", ".MP3", ".MP4", ".M3U"
+    };
+
+    private readonly string _libFileName = "PlayLists.json";
+
+    private UserMediaLibrary _userMediaLibrary;
+
+    private PlayList _selectedPlayList;
+
+    public event EventHandler CanExecuteChanged;
+
+    private string LibPath => Path.Combine(Directory.GetParent(Assembly.GetExecutingAssembly().Location).FullName, _libFileName);
+
+    public MediaLibrary LoadSavedPlayLists()
+    {
+        _userMediaLibrary = GetSavedPlayLists();
+
+        SelectedPlayList = _userMediaLibrary.SelectedPlayList;
+
+        OnPropertyChanged(nameof(MediaLibraries), nameof(SelectedPlayList));
+
+        return this;
+    }
+
+    public ICommand CreatePlayListCommand
+    {
+        get
         {
-            ".WEBM", ".MPG", ".MP2", ".MPEG", ".MPE", ".MPV", ".OGG", ".MP4", ".M4P", ".M4V", ".AVI", ".WMV",".MOV", ".MKV", ".MP3", ".MP4"
+            return new ActionCommand(_ =>
+            {
+                var playListName = DialogCoordinator.Instance.ShowModalInputExternal(
+                        this,
+                       "Enter playlist name",
+                       string.Empty,
+                       new MetroDialogSettings
+                       {
+                           AnimateShow = true,
+                           AnimateHide = true,
+                           ColorScheme = MetroDialogColorScheme.Accented
+                       });
+                CreatePlaylist(playListName);
+            });
+        }
+    }
+
+    public PlayList SelectedPlayList
+    {
+        get
+        {
+            return _selectedPlayList;
+        }
+        set
+        {
+            if (_selectedPlayList != value)
+            {
+                SetField(ref _selectedPlayList, value);
+
+                MediaLibraries?.ForEach(library => library.IsSelected = false);
+
+                if (_selectedPlayList != null)
+                {
+                    _selectedPlayList.IsSelected = true;
+                }
+            }
+        }
+    }
+
+    public void LoadUserSelectedFiles()
+    {
+        var paths = GetUserSelectedFiles();
+
+        if (paths.Any())
+        {
+            var files = GetMediaElements(paths);
+
+            _userMediaLibrary.AddMediaFilesToCurrentPlayList(files);
+        }
+    }
+
+    public void LoadUserSelectedFolder()
+    {
+        var path = TryGetUserFilesFromSelectedFolder();
+
+        if (!string.IsNullOrWhiteSpace(path))
+        {
+            var paths = Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories);
+
+            var files = GetMediaElements(paths);
+
+            _userMediaLibrary.AddMediaFilesToCurrentPlayList(files);
+        }
+    }
+
+    public ObservableCollection<PlayList> MediaLibraries { get { return _userMediaLibrary.PlayLists; } }
+
+    public void Save()
+    {
+        var content = JsonSerializer.Serialize(_userMediaLibrary);
+
+        File.WriteAllText(LibPath, content);
+    }
+
+    public void DeleteCurrentLibrary() => _userMediaLibrary.SelectedPlayList.MediaItems.Clear();
+
+    public IEnumerable<MediaItem> LoadLibrary(string[] paths) => GetMediaElements(paths);
+
+    public void Remove(MediaItem mediaElement)
+    {
+        //if (mediaElement != null)
+        //{
+        //    _currentPlayLists.Remove(mediaElement);
+        //}
+    }
+
+    public void HardRemove(MediaItem mediaElement)
+    {
+        if (mediaElement.IsFile && File.Exists(mediaElement.FullPath))
+        {
+            File.Delete(mediaElement.FullPath);
+        }
+        else if (Directory.Exists(mediaElement.FullPath))
+        {
+            Directory.Delete(mediaElement.FullPath, true);
+        }
+
+        Remove(mediaElement);
+    }
+
+    public void CreatePlaylist(string playListName) => _userMediaLibrary.CreatePlayList(playListName);
+
+    private IEnumerable<string> GetUserSelectedFiles()
+    {
+        using var dialog = new OpenFileDialog
+        {
+            CheckFileExists = true,
+            CheckPathExists = true
         };
 
-        private readonly string _libFileName = "libs.json";
+        DialogResult result = dialog.ShowDialog();
 
-        private ObservableCollection<MediaElement>? _currenMedia;
+        return result == DialogResult.OK ? dialog.FileNames : Enumerable.Empty<string>();
+    }
 
-        private string LibPath => Path.Combine(Directory.GetParent(Assembly.GetExecutingAssembly().Location)?.FullName, _libFileName);
+    private string TryGetUserFilesFromSelectedFolder()
+    {
+        using var dialog = new FolderBrowserDialog();
 
-        public IEnumerable<MediaElement> CreateLibrary()
+        DialogResult result = dialog.ShowDialog();
+
+        return result == DialogResult.OK ? dialog.SelectedPath : string.Empty;
+    }
+
+    private IEnumerable<MediaItem> GetMediaElements(IEnumerable<string> paths) =>
+        paths?.Select(x => new FileInfo(x))
+              .Where(x => _mediaFormatTypes.Contains(x.Extension.ToUpper()))
+              .Select(x => new MediaItem(x.Name, x.FullName.Trim(), true)) ?? Enumerable.Empty<MediaItem>();
+
+    private UserMediaLibrary GetSavedPlayLists()
+    {
+        if (File.Exists(LibPath))
         {
-            var path = string.Empty;
+            string content = File.ReadAllText(LibPath);
 
-            if (TryGetUserSelectedFolder(ref path))
-            {
-                if (string.IsNullOrWhiteSpace(path))
-                {
-                    throw new ArgumentNullException(nameof(path));
-                }
+            var mediaLibrary = string.IsNullOrWhiteSpace(content) ?
+                UserMediaLibrary.Default :
+                JsonSerializer.Deserialize<UserMediaLibrary>(content) ?? UserMediaLibrary.Default;
 
-                _currenMedia = new ObservableCollection<MediaElement>(GetMediaElements(path));
+            mediaLibrary.RemoveDeletedFiles();
 
-                return _currenMedia;
-            }
-
-            return _currenMedia;
+            return mediaLibrary;
         }
 
-        internal void Save()
-        {
-            var content = JsonSerializer.Serialize(_currenMedia);
+        return UserMediaLibrary.Default;
+    }
+}
 
-            File.WriteAllText(LibPath, content);
-        }
+public class ActionCommand : ICommand
+{
+    public event EventHandler CanExecuteChanged;
 
-        internal void DeleteCurrentLibrary()
-        {
-            _currenMedia = new ObservableCollection<MediaElement>();
-        }
+    private readonly Action<object> _executeAction;
 
-        internal IEnumerable<MediaElement> GetSavedLibrary()
-        {
-            if (File.Exists(LibPath))
-            {
-                string? content = File.ReadAllText(LibPath);
+    public ActionCommand(Action<object> executeAction)
+    {
+        _executeAction = executeAction;
+    }
 
-                var list = string.IsNullOrWhiteSpace(content) ?
-                    new List<MediaElement>() :
-                    JsonSerializer.Deserialize<IEnumerable<MediaElement>>(content)?.ToList();
+    public bool CanExecute(object parameter)
+    {
+        return true;
+    }
 
-                list?.Sort();
-
-                _currenMedia = new ObservableCollection<MediaElement>(list ?? new List<MediaElement>());
-
-                return _currenMedia;
-            }
-
-            return Enumerable.Empty<MediaElement>();
-        }
-
-        public IEnumerable<MediaElement> LoadLibrary(string path) => GetMediaElements(path);
-
-        public void Remove(MediaElement mediaElement)
-        {
-            if (mediaElement != null)
-            {
-                _currenMedia.Remove(mediaElement);
-            }
-        }
-
-        public void HardRemove(MediaElement mediaElement)
-        {
-            if (mediaElement.IsFile && File.Exists(mediaElement.FullPath))
-            {
-                File.Delete(mediaElement.FullPath);
-            }
-            else if (Directory.Exists(mediaElement.FullPath))
-            {
-                Directory.Delete(mediaElement.FullPath, true);
-            }
-
-            Remove(mediaElement);
-        }
-
-        private bool TryGetUserSelectedFolder(ref string path)
-        {
-            using var dialog = new FolderBrowserDialog();
-
-            DialogResult result = dialog.ShowDialog();
-
-            path = dialog.SelectedPath;
-
-            return result == DialogResult.OK;
-        }
-
-        private IEnumerable<MediaElement> GetMediaElements(string path)
-        {
-            var folder = new DirectoryInfo(path);
-
-            if (!folder.Exists)
-            {
-                throw new Exception("Folder doesnt exist");
-            }
-
-            var list = folder.GetFiles()
-                        .Where(x => _mediaFormatTypes.Contains(x.Extension.ToUpper()))
-                        .Select(x => new MediaElement { Name = x.Name, FullPath = x.FullName.Trim(), IsFile = true })
-                        .Union(folder.GetDirectories()
-                                     .Select(x => new MediaElement { Name = x.Name, FullPath = x.FullName.Trim(), IsFile = false }))
-                        .ToList();
-
-            list.Sort();
-
-            return list.AsEnumerable();
-        }
+    public void Execute(object parameter)
+    {
+        _executeAction?.Invoke(parameter);
     }
 }

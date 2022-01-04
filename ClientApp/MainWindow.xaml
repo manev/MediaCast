@@ -1,19 +1,22 @@
-<controls:MetroWindow x:Class="ClientApp.MainWindow"
+<controls:MetroWindow x:Class="MediaCast.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:ClientApp"
+        xmlns:local="clr-namespace:MediaCast"
         xmlns:controls="http://metro.mahapps.com/winfx/xaml/controls"
         mc:Ignorable="d"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         TextElement.Foreground="{DynamicResource MaterialDesignBody}"
         TextElement.FontWeight="Regular"
-        TextElement.FontSize="13"
+        TextElement.FontSize="15"
         TextOptions.TextFormattingMode="Ideal" 
         TextOptions.TextRenderingMode="Auto"        
         WindowStartupLocation="CenterScreen"
         BorderThickness="1"
+        UseLayoutRounding="True"
+        IgnoreTaskbarOnMaximize="True"
+        Grid.ZIndex="100000"
         GlowBrush="{DynamicResource MahApps.Brushes.Accent}"
         Background="{DynamicResource MaterialDesignPaper}"
         BorderBrush="{DynamicResource MahApps.Brushes.Accent}"
@@ -21,35 +24,38 @@
 
     <controls:MetroWindow.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
-
         <Style x:Key="toolbarButton" TargetType="Button" BasedOn="{StaticResource MaterialDesignToolButton}">
             <Setter Property="Foreground" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type FrameworkElement}}, Path=(TextElement.Foreground)}" />
         </Style>
     </controls:MetroWindow.Resources>
 
     <controls:MetroWindow.LeftWindowCommands>
-        <controls:WindowCommands x:Name="toolbar">
+        <controls:WindowCommands>
 
-            <!--<Button x:Name="closeBtn" 
-                        Click="OnClose"
-                        Grid.Column="4"
-                        HorizontalAlignment="Right" 
-                        Content="{materialDesign:PackIcon Kind=CloseThick, Size=20}"></Button>-->
+            <ToggleButton Width="25" Height="25" Margin="20 0"
+                          x:Name="hamburgerExpander"
+                          Checked="OnToggleExpanderChecker"
+                          Unchecked="OnToggleExpanderChecker"
+                          Style="{StaticResource MaterialDesignHamburgerToggleButton}" 
+                          IsChecked="True"/>
 
-            <Button Content="{materialDesign:PackIcon Kind=ArrowLeft, Size=20}"
-                    Click="BackClickHandler"></Button>
+            <Button Content="Create Playlist" Margin="10 0 10 0" Command="{Binding CreatePlayListCommand}"></Button>
 
-            <Button Content="Add Library" 
-                    Click="AddLibClickHandler" Margin="1 0"></Button>
+            <Button Content="Add File(s)" Click="AddFiles" Margin="10 0 10 0"></Button>
 
-            <Button Content="Delete Library"
-                    Click="DeleteCurrentLib" Margin="1 0"></Button>
+            <Button Content="Add Folder" Click="AddFolder" Margin="10 0 10 0"></Button>
+
+            <Button Content="Delete Library" Click="DeleteCurrentLib" Margin="10 0 10 0"></Button>
 
         </controls:WindowCommands>
     </controls:MetroWindow.LeftWindowCommands>
 
     <controls:MetroWindow.RightWindowCommands>
         <controls:WindowCommands>
+
+            <ComboBox x:Name="userMediaLibs" ItemsSource="{Binding MediaLibraries}" 
+                      Width="150" Margin="2" DisplayMemberPath="Name" SelectedItem="{Binding SelectedPlayList, Mode=TwoWay}" />
+
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="10 0 10 0" x:Name="chromeCastList">
                 <Button Content="Connect" Click="ConnectChromeCast"></Button>
                 <ComboBox Margin="10 0 0 0" Width="300" HorizontalAlignment="Center"  Visibility="Collapsed">
@@ -63,61 +69,43 @@
         </controls:WindowCommands>
     </controls:MetroWindow.RightWindowCommands>
 
-    <controls:HamburgerMenu x:Name="mediaList" 
-                            HamburgerWidth="48"
-                            DisplayMode="CompactInline"
-                            IsPaneOpen="true"
-                            CanResizeOpenPane="True"
-                            HamburgerButtonClick="OnHamburgerButtonClick"
-                            MouseDoubleClick="OnMediaSelected">
-        
-        <!--<controls:HamburgerMenu.ContextMenu>
-            <ContextMenu>
-                <MenuItem Header="Delete" Click="OnDelete" />
-                <MenuItem Header="Hard Delete" Click="OnHardDelete" />
-            </ContextMenu>
-        </controls:HamburgerMenu.ContextMenu>-->
-        
-        <controls:HamburgerMenu.Resources>
-            <Style TargetType="ScrollBar" BasedOn="{StaticResource MaterialDesignScrollBarMinimal}"/>
-        </controls:HamburgerMenu.Resources>
-        <controls:HamburgerMenu.ItemTemplate>
-            <DataTemplate>
-                <DockPanel Margin="10 5">
-                    <DockPanel.Style>
-                        <Style TargetType="DockPanel">
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType={x:Type controls:HamburgerMenu}}, Path=IsPaneOpen, Mode=OneWay}" Value="false">
-                                    <Setter Property="Visibility" Value="Collapsed"></Setter>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </DockPanel.Style>
-                    <materialDesign:PackIcon DockPanel.Dock="Left">
-                        <materialDesign:PackIcon.Style>
-                            <Style TargetType="materialDesign:PackIcon">
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsFile}" Value="true">
-                                        <Setter Property="Kind" Value="Video" />
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding IsFile}" Value="false">
-                                        <Setter Property="Kind" Value="Folder" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </materialDesign:PackIcon.Style>
-                    </materialDesign:PackIcon>
-                    <TextBlock Text="{Binding Name}" Margin="2 0 0 0"></TextBlock>
-                </DockPanel>
-            </DataTemplate>
-        </controls:HamburgerMenu.ItemTemplate>
+    <Grid x:Name="rootLayout">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="350" x:Name="mediaListColumnt" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
 
-        <controls:HamburgerMenu.Content>
-            <local:MediaPlayerHost x:Name="mediaElement"
+        <ListBox x:Name="mediaList" ItemsSource="{Binding SelectedPlayList.MediaItems}" MouseDoubleClick="OnMediaSelected" Padding="0 10 0 0">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <DockPanel Margin="5 10 10 0">
+                        <materialDesign:PackIcon DockPanel.Dock="Left">
+                            <materialDesign:PackIcon.Style>
+                                <Style TargetType="materialDesign:PackIcon">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsFile}" Value="true">
+                                            <Setter Property="Kind" Value="Video" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding IsFile}" Value="false">
+                                            <Setter Property="Kind" Value="Folder" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </materialDesign:PackIcon.Style>
+                        </materialDesign:PackIcon>
+                        <TextBlock Text="{Binding Name}" Margin="5 0 0 0"></TextBlock>
+                    </DockPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
+        <GridSplitter Width="4" x:Name="gridSplitter" Style="{StaticResource MaterialDesignGridSplitter}">
+        </GridSplitter>
+
+        <local:MediaPlayerHost x:Name="mediaElement" Grid.Column="1"
                                ToggledFullScreen="OnToggleFullScreenHandler"
-                               VideoEnded="OnVideoEnded"></local:MediaPlayerHost>
-        </controls:HamburgerMenu.Content>
+                               VideoEnded="OnVideoEnded" />
 
-    </controls:HamburgerMenu>
+    </Grid>
 
 </controls:MetroWindow>

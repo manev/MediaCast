@@ -1,38 +1,31 @@
-﻿using System;
-using System.Linq;
-using System.Net;
-using System.Net.NetworkInformation;
-using System.Net.Sockets;
+﻿namespace MediaCast;
 
-namespace ClientApp
+internal class ChromeCastConnector
 {
-    internal class ChromeCastConnector
+    private IPAddress? _localIpAddress;
+
+    public void PlayVideo(string path)
     {
-        private IPAddress? _localIpAddress;
+    }
 
-        public void PlayVideo(string path)
+    public void Initialize()
+    {
+        if (!NetworkInterface.GetIsNetworkAvailable())
         {
+            throw new Exception("No Internet Connected!");
         }
 
-        public void Initialize()
+        var host = Dns.GetHostEntry(Dns.GetHostName());
+
+        _localIpAddress = host.AddressList.LastOrDefault(ip => ip.AddressFamily == AddressFamily.InterNetwork);
+
+        if (_localIpAddress is null)
         {
-            if (!NetworkInterface.GetIsNetworkAvailable())
-            {
-                throw new Exception("No Internet Connected!");
-            }
-
-            var host = Dns.GetHostEntry(Dns.GetHostName());
-
-            _localIpAddress = host.AddressList.LastOrDefault(ip => ip.AddressFamily == AddressFamily.InterNetwork);
-
-            if (_localIpAddress is null)
-            {
-                throw new Exception("No network adapters with an IPv4 address in the system!");
-            }
+            throw new Exception("No network adapters with an IPv4 address in the system!");
         }
+    }
 
-        public void Connect()
-        {
-        }
+    public void Connect()
+    {
     }
 }

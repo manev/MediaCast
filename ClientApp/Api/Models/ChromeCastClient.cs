@@ -1,11 +1,10 @@
-﻿namespace ClientApp
+﻿namespace MediaCast;
+
+internal class ChromeCastClient
 {
-    internal class ChromeCastClient
-    {
-        public string Name { get; set; }
+    public string Name { get; set; }
 
-        public string FriendlyName { get; set; }
+    public string FriendlyName { get; set; }
 
-        public string Host { get; set; }
-    }
+    public string Host { get; set; }
 }

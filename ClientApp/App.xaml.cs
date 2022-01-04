@@ -1,8 +1,5 @@
-﻿using System.Windows;
+﻿namespace MediaCast;
 
-namespace ClientApp
+public partial class App : Application
 {
-    public partial class App : Application
-    {
-    }
 }
