@@ -124,21 +124,5 @@ public partial class MainWindow : MetroWindow
     private void OnHardDelete(object sender, RoutedEventArgs e) => _mediaLib.HardRemove(mediaList.SelectedItem as MediaItem);
 
     private void OnToggleExpanderChecker(object sender, RoutedEventArgs e) => ToggleExpander();
-
-    private void CreatePlayList(object sender, RoutedEventArgs e)
-    {
-        var playListName = DialogCoordinator.Instance.ShowModalInputExternal(
-           this,
-           "Enter playlist name",
-           String.Empty,
-           new MetroDialogSettings
-           {
-               AnimateShow = true,
-               AnimateHide = true,
-               ColorScheme = MetroDialogColorScheme.Accented
-           });
-
-        _mediaLib.CreatePlaylist(playListName);
-    }
 }
 
