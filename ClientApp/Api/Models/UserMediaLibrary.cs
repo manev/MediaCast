@@ -50,17 +50,17 @@ internal class UserMediaLibrary
 
     public void RemoveDeletedFiles() => PlayLists.ForEach(x => x.RemoveDeletedFiles());
 
-    public void CreatePlayList(string playListName)
+    public PlayList CreatePlayList(string playListName)
     {
         if (string.IsNullOrEmpty(playListName))
         {
-            return;
+            throw new ArgumentNullException(nameof(playListName));
         }
 
-        SelectedPlayList = new PlayList { Name = playListName, IsSelected = true };
-
-        PlayLists.ForEach(x => x.IsSelected = false);
+        SelectedPlayList = new PlayList { Name = playListName };
 
         PlayLists.Add(SelectedPlayList);
+
+        return SelectedPlayList;
     }
 }

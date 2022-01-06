@@ -32,26 +32,6 @@ public partial class MainWindow : MetroWindow
 
     private void WindowClosing(object sender, CancelEventArgs e) => _mediaLib.Save();
 
-    private void AddFiles(object sender, RoutedEventArgs e) => _mediaLib.LoadUserSelectedFiles();
-
-    private void AddFolder(object sender, RoutedEventArgs e) => _mediaLib.LoadUserSelectedFolder();
-
-    private void DeleteCurrentLib(object sender, RoutedEventArgs e) => _mediaLib.DeleteCurrentLibrary();
-
-    private void OnMediaSelected(object sender, RoutedEventArgs e)
-    {
-        var selectedMedia = mediaList.SelectedItem as MediaItem;
-
-        if (selectedMedia == null)
-        {
-            return;
-        }
-
-        mediaElement.Source = new Uri(selectedMedia.FullPath);
-
-        mediaElement.Play();
-    }
-
     private void ConnectChromeCast(object sender, RoutedEventArgs e)
     {
         mediaElement.LoadDevices();
@@ -125,4 +105,3 @@ public partial class MainWindow : MetroWindow
 
     private void OnToggleExpanderChecker(object sender, RoutedEventArgs e) => ToggleExpander();
 }
-

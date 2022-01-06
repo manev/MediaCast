@@ -9,13 +9,25 @@ public partial class MediaPlayerHost : UserControl
     private bool _isLoaded = false;
     private bool _isSliderDragStarted = false;
     private bool _isFullScreenMode = false;
-
+    private Uri _source;
     private LibVLC _libVLC;
     private RendererDiscoverer _rendererDiscoverer;
 
-    public Uri Source { get; set; }
     public event EventHandler ToggledFullScreen;
     public event EventHandler VideoEnded;
+
+    public MediaItem MediaItem
+    {
+        get { return (MediaItem)GetValue(MediaItemProperty); }
+        set { SetValue(MediaItemProperty, value); }
+    }
+
+    public static readonly DependencyProperty MediaItemProperty =
+        DependencyProperty.Register(
+            "MediaItem",
+            typeof(MediaItem),
+            typeof(MediaPlayerHost),
+            new PropertyMetadata(new PropertyChangedCallback(OnMediaItemChanged)));
 
     public MediaPlayerHost()
     {
@@ -33,14 +45,14 @@ public partial class MediaPlayerHost : UserControl
 
     public void Play()
     {
-        if (Source != null)
+        if (_source != null)
         {
             if (videoView?.MediaPlayer?.IsPlaying == true)
             {
                 StopMedia();
             }
 
-            using var media = new Media(_libVLC, Source);
+            using var media = new Media(_libVLC, _source);
 
             TryLoadSubtitlesFile();
 
@@ -58,6 +70,24 @@ public partial class MediaPlayerHost : UserControl
         }
     }
 
+    private static void OnMediaItemChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        var playerHost = d as MediaPlayerHost;
+
+        if (e.NewValue != null)
+        {
+            playerHost._source = new Uri(((MediaItem)e.NewValue).FullPath);
+
+            playerHost.Play();
+        }
+        else
+        {
+            playerHost._source = null;
+
+            playerHost.StopMedia();
+        }
+    }
+
     private void OnVolumeChanged(object sender, MouseWheelEventArgs e)
     {
         videoView.MediaPlayer.Volume += e.Delta > 0 ? -1 : 1;
@@ -69,9 +99,9 @@ public partial class MediaPlayerHost : UserControl
 
     private void TryLoadSubtitlesFile()
     {
-        var subFile = Source.LocalPath;
+        var subFile = _source.LocalPath;
 
-        subFile = subFile.Replace(Path.GetExtension(Source.LocalPath), ".srt");
+        subFile = subFile.Replace(Path.GetExtension(_source.LocalPath), ".srt");
 
         if (File.Exists(subFile))
         {

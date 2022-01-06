@@ -11,12 +11,9 @@ internal class MediaLibrary : ViewModelBase
     };
 
     private readonly string _libFileName = "PlayLists.json";
-
     private UserMediaLibrary _userMediaLibrary;
-
     private PlayList _selectedPlayList;
-
-    public event EventHandler CanExecuteChanged;
+    private MediaItem _selectedMedia;
 
     private string LibPath => Path.Combine(Directory.GetParent(Assembly.GetExecutingAssembly().Location).FullName, _libFileName);
 
@@ -47,8 +44,52 @@ internal class MediaLibrary : ViewModelBase
                            AnimateHide = true,
                            ColorScheme = MetroDialogColorScheme.Accented
                        });
-                CreatePlaylist(playListName);
+                SelectedPlayList = _userMediaLibrary.CreatePlayList(playListName);
             });
+        }
+    }
+
+    public ICommand AddFilesCommand
+    {
+        get
+        {
+            return new ActionCommand(_ => LoadUserSelectedFiles());
+        }
+    }
+
+    public ICommand AddFoldersCommand
+    {
+        get
+        {
+            return new ActionCommand(_ => LoadUserSelectedFolder());
+        }
+    }
+
+    public ICommand DeletePlayListMediaItems
+    {
+        get
+        {
+            return new ActionCommand(_ => DeleteCurrentLibrary());
+        }
+    }
+
+    public ICommand SelectMediaItem
+    {
+        get
+        {
+            return new ActionCommand(item => SelectedMediaItem = item as MediaItem);
+        }
+    }
+
+    public MediaItem SelectedMediaItem
+    {
+        get
+        {
+            return _selectedMedia;
+        }
+        set
+        {
+            SetField(ref _selectedMedia, value);
         }
     }
 
@@ -135,8 +176,6 @@ internal class MediaLibrary : ViewModelBase
         Remove(mediaElement);
     }
 
-    public void CreatePlaylist(string playListName) => _userMediaLibrary.CreatePlayList(playListName);
-
     private IEnumerable<string> GetUserSelectedFiles()
     {
         using var dialog = new OpenFileDialog
@@ -180,27 +219,5 @@ internal class MediaLibrary : ViewModelBase
         }
 
         return UserMediaLibrary.Default;
-    }
-}
-
-public class ActionCommand : ICommand
-{
-    public event EventHandler CanExecuteChanged;
-
-    private readonly Action<object> _executeAction;
-
-    public ActionCommand(Action<object> executeAction)
-    {
-        _executeAction = executeAction;
-    }
-
-    public bool CanExecute(object parameter)
-    {
-        return true;
-    }
-
-    public void Execute(object parameter)
-    {
-        _executeAction?.Invoke(parameter);
     }
 }

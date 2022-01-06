@@ -41,11 +41,11 @@
 
             <Button Content="Create Playlist" Margin="10 0 10 0" Command="{Binding CreatePlayListCommand}"></Button>
 
-            <Button Content="Add File(s)" Click="AddFiles" Margin="10 0 10 0"></Button>
+            <Button Content="Add File(s)" Command="{Binding AddFilesCommand}" Margin="10 0 10 0"></Button>
 
-            <Button Content="Add Folder" Click="AddFolder" Margin="10 0 10 0"></Button>
+            <Button Content="Add Folder" Command="{Binding AddFoldersCommand}" Margin="10 0 10 0"></Button>
 
-            <Button Content="Delete Library" Click="DeleteCurrentLib" Margin="10 0 10 0"></Button>
+            <Button Content="Delete Library" Command="{Binding DeletePlayListMediaItems}" Margin="10 0 10 0"></Button>
 
         </controls:WindowCommands>
     </controls:MetroWindow.LeftWindowCommands>
@@ -75,10 +75,15 @@
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
-        <ListBox x:Name="mediaList" ItemsSource="{Binding SelectedPlayList.MediaItems}" MouseDoubleClick="OnMediaSelected" Padding="0 10 0 0">
+        <ListBox x:Name="mediaList" ItemsSource="{Binding SelectedPlayList.MediaItems}">
             <ListBox.ItemTemplate>
                 <DataTemplate>
                     <DockPanel Margin="5 10 10 0">
+                        <DockPanel.InputBindings>
+                            <MouseBinding Gesture="LeftDoubleClick"
+                                          Command="{Binding DataContext.SelectMediaItem, RelativeSource={RelativeSource AncestorType=Window}}"
+                                          CommandParameter="{Binding}" />
+                        </DockPanel.InputBindings>
                         <materialDesign:PackIcon DockPanel.Dock="Left">
                             <materialDesign:PackIcon.Style>
                                 <Style TargetType="materialDesign:PackIcon">
@@ -99,13 +104,12 @@
             </ListBox.ItemTemplate>
         </ListBox>
 
-        <GridSplitter Width="4" x:Name="gridSplitter" Style="{StaticResource MaterialDesignGridSplitter}">
-        </GridSplitter>
+        <GridSplitter Width="4" x:Name="gridSplitter" Style="{StaticResource MaterialDesignGridSplitter}" />
 
         <local:MediaPlayerHost x:Name="mediaElement" Grid.Column="1"
+                               MediaItem="{Binding SelectedMediaItem, Mode=OneWay}"
                                ToggledFullScreen="OnToggleFullScreenHandler"
                                VideoEnded="OnVideoEnded" />
-
     </Grid>
 
 </controls:MetroWindow>
