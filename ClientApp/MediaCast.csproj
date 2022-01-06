@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<TargetFramework>net6.0-windows</TargetFramework>
+		<UseWPF>true</UseWPF>
+		<UseWindowsForms>False</UseWindowsForms>
+		<AssemblyName>MediaCast</AssemblyName>
+		<RootNamespace>ClientApp</RootNamespace>
+		<StartupObject></StartupObject>
+		<Nullable>disable</Nullable>
+		<SignAssembly>False</SignAssembly>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Google.Apis.YouTube.v3" Version="1.55.0.2449" />
+		<PackageReference Include="LibVLCSharp" Version="3.6.5" />
+		<PackageReference Include="LibVLCSharp.WPF" Version="3.6.5" />
+		<PackageReference Include="MahApps.Metro" Version="2.4.9" />
+		<PackageReference Include="MaterialDesignThemes" Version="4.4.0-ci43" />
+		<PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="6.0.1" />
+		<PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.16" />
+	</ItemGroup>
+
+</Project>
