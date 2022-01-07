@@ -17,7 +17,7 @@
 		<PackageReference Include="LibVLCSharp" Version="3.6.5" />
 		<PackageReference Include="LibVLCSharp.WPF" Version="3.6.5" />
 		<PackageReference Include="MahApps.Metro" Version="2.4.9" />
-		<PackageReference Include="MaterialDesignThemes" Version="4.4.0-ci43" />
+		<PackageReference Include="MaterialDesignThemes" Version="4.4.0-ci45" />
 		<PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="6.0.1" />
 		<PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.16" />
 	</ItemGroup>

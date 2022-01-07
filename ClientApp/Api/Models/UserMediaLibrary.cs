@@ -48,7 +48,7 @@ internal class UserMediaLibrary
         SelectedPlayList.MediaItems.AddRange(files);
     }
 
-    public void RemoveDeletedFiles() => PlayLists.ForEach(x => x.RemoveDeletedFiles());
+    public void RemoveDeletedMediaItems() => PlayLists.ForEach(x => x.RemoveDeletedMediaItems());
 
     public PlayList CreatePlayList(string playListName)
     {

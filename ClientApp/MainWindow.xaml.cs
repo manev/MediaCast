@@ -6,7 +6,7 @@ namespace MediaCast;
 
 public partial class MainWindow : MetroWindow
 {
-    private readonly MediaLibrary _mediaLib;
+    private readonly MediaLibraryViewModel _mediaLib;
     private readonly WindowFullcreenManager _layoutScreenManager;
     private GridLength _mediaListColumntWidth;
 
@@ -14,7 +14,7 @@ public partial class MainWindow : MetroWindow
     {
         InitializeComponent();
 
-        _mediaLib = new MediaLibrary();
+        _mediaLib = new MediaLibraryViewModel();
 
         _layoutScreenManager = new WindowFullcreenManager(this);
 

@@ -11,5 +11,8 @@ internal class PlayList
     [JsonInclude]
     public BulkObservableCollection<MediaItem> MediaItems { get; private set; } = new BulkObservableCollection<MediaItem>();
 
-    public void RemoveDeletedFiles() => MediaItems.RemoveRange(MediaItems.Where(x => !File.Exists(x.FullPath)).ToList());
+    public void RemoveDeletedMediaItems() =>
+        MediaItems.RemoveRange(
+            MediaItems.Where(x => (x.IsFile && !File.Exists(x.FullPath)) || (!x.IsFile && !Directory.Exists(x.FullPath)))
+                      .ToList());
 }

@@ -13,4 +13,19 @@ internal static class IEnumerableExtensions
             action(item);
         }
     }
+
+    public static T FirstNotNullOrDefault<T>(this IEnumerable<T> source)
+    {
+        source = source ?? throw new ArgumentNullException(nameof(source));
+
+        foreach (var item in source)
+        {
+            if (item != null)
+            {
+                return item;
+            }
+        }
+
+        return default;
+    }
 }

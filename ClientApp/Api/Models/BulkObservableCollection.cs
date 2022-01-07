@@ -3,7 +3,7 @@ using System.Windows.Data;
 
 namespace MediaCast.Models;
 
-internal class BulkObservableCollection<T> : ObservableCollection<T>
+public class BulkObservableCollection<T> : ObservableCollection<T>
 {
     private bool _suppressCollectionChangedNotification;
 

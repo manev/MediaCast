@@ -1,11 +1,15 @@
 ﻿using LibVLCSharp.Shared;
 
 using MaterialDesignThemes.Wpf;
+using System.Text.RegularExpressions;
 
 namespace MediaCast;
 
 public partial class MediaPlayerHost : UserControl
 {
+    private static string url_regex = @"https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)";
+    private static string[] radio_format_extensions = new[] { ".m3u", ".pls" };
+
     private bool _isLoaded = false;
     private bool _isSliderDragStarted = false;
     private bool _isFullScreenMode = false;
@@ -74,11 +78,16 @@ public partial class MediaPlayerHost : UserControl
     {
         var playerHost = d as MediaPlayerHost;
 
-        if (e.NewValue != null)
-        {
-            playerHost._source = new Uri(((MediaItem)e.NewValue).FullPath);
+        var mediaItem = e.NewValue as MediaItem;
 
-            playerHost.Play();
+        if (mediaItem != null)
+        {
+            if (mediaItem.IsFile)
+            {
+                playerHost._source = GetUrlFromMediaItem((MediaItem)e.NewValue);
+
+                playerHost.Play();
+            }
         }
         else
         {
@@ -86,6 +95,22 @@ public partial class MediaPlayerHost : UserControl
 
             playerHost.StopMedia();
         }
+    }
+
+    private static Uri GetUrlFromMediaItem(MediaItem mediaItem)
+    {
+        var path = mediaItem.FullPath;
+
+        if (IsRadioFormat(Path.GetExtension(path).ToLower()))
+        {
+            var url = File.ReadAllLines(path)
+                          .Select(line => Regex.Match(line, url_regex)?.Value)
+                          .FirstNotNullOrDefault();
+
+            return url != null ? new Uri(url) : new Uri(path);
+        }
+
+        return new Uri(path);
     }
 
     private void OnVolumeChanged(object sender, MouseWheelEventArgs e)
@@ -101,11 +126,16 @@ public partial class MediaPlayerHost : UserControl
     {
         var subFile = _source.LocalPath;
 
-        subFile = subFile.Replace(Path.GetExtension(_source.LocalPath), ".srt");
+        var pathExtension = Path.GetExtension(_source.LocalPath);
 
-        if (File.Exists(subFile))
+        if (!string.IsNullOrWhiteSpace(pathExtension))
         {
-            videoView.MediaPlayer.AddSlave(MediaSlaveType.Subtitle, subFile, true);
+            subFile = subFile.Replace(pathExtension, ".srt");
+
+            if (File.Exists(subFile))
+            {
+                videoView.MediaPlayer.AddSlave(MediaSlaveType.Subtitle, subFile, true);
+            }
         }
     }
 
@@ -298,5 +328,10 @@ public partial class MediaPlayerHost : UserControl
         {
             ToggleFullScreen(sender, e);
         }
+    }
+
+    private static bool IsRadioFormat(string path)
+    {
+        return radio_format_extensions.Contains(Path.GetExtension(path).ToLower());
     }
 }

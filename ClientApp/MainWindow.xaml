@@ -16,7 +16,6 @@
         BorderThickness="1"
         UseLayoutRounding="True"
         IgnoreTaskbarOnMaximize="True"
-        Grid.ZIndex="100000"
         GlowBrush="{DynamicResource MahApps.Brushes.Accent}"
         Background="{DynamicResource MaterialDesignPaper}"
         BorderBrush="{DynamicResource MahApps.Brushes.Accent}"
@@ -27,6 +26,43 @@
         <Style x:Key="toolbarButton" TargetType="Button" BasedOn="{StaticResource MaterialDesignToolButton}">
             <Setter Property="Foreground" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type FrameworkElement}}, Path=(TextElement.Foreground)}" />
         </Style>
+
+        <ControlTemplate TargetType="ListBox" x:Key="listBoxTemplate">
+            <ItemsPresenter></ItemsPresenter>
+        </ControlTemplate>
+
+
+        <DataTemplate x:Key="listTemplate">
+            <DockPanel Margin="5 10 10 0">
+                <DockPanel.InputBindings>
+                    <MouseBinding Gesture="LeftDoubleClick"
+                                          Command="{Binding DataContext.SelectMediaItem, RelativeSource={RelativeSource AncestorType=Window}}"
+                                          CommandParameter="{Binding}" />
+                </DockPanel.InputBindings>
+                <materialDesign:PackIcon DockPanel.Dock="Left">
+                    <materialDesign:PackIcon.Style>
+                        <Style TargetType="materialDesign:PackIcon">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsFile}" Value="true">
+                                    <Setter Property="Kind" Value="Video" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding IsFile}" Value="false">
+                                    <Setter Property="Kind" Value="Folder" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </materialDesign:PackIcon.Style>
+                </materialDesign:PackIcon>
+                <DockPanel>
+                    <TextBlock Text="{Binding Name}" Margin="5 0 0 0" DockPanel.Dock="Top"></TextBlock>
+                    <ListBox DockPanel.Dock="Bottom" ItemsSource="{Binding Items}"
+                             Template="{StaticResource listBoxTemplate}"
+                             Margin="-20 1 0 0" Visibility="{Binding IsExpanded, Converter={StaticResource BooleanToVisibilityConverter}}"
+                             ItemTemplate="{DynamicResource listTemplate}">
+                    </ListBox>
+                </DockPanel>
+            </DockPanel>
+        </DataTemplate>
     </controls:MetroWindow.Resources>
 
     <controls:MetroWindow.LeftWindowCommands>
@@ -75,34 +111,12 @@
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
-        <ListBox x:Name="mediaList" ItemsSource="{Binding SelectedPlayList.MediaItems}">
-            <ListBox.ItemTemplate>
-                <DataTemplate>
-                    <DockPanel Margin="5 10 10 0">
-                        <DockPanel.InputBindings>
-                            <MouseBinding Gesture="LeftDoubleClick"
-                                          Command="{Binding DataContext.SelectMediaItem, RelativeSource={RelativeSource AncestorType=Window}}"
-                                          CommandParameter="{Binding}" />
-                        </DockPanel.InputBindings>
-                        <materialDesign:PackIcon DockPanel.Dock="Left">
-                            <materialDesign:PackIcon.Style>
-                                <Style TargetType="materialDesign:PackIcon">
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsFile}" Value="true">
-                                            <Setter Property="Kind" Value="Video" />
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding IsFile}" Value="false">
-                                            <Setter Property="Kind" Value="Folder" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </materialDesign:PackIcon.Style>
-                        </materialDesign:PackIcon>
-                        <TextBlock Text="{Binding Name}" Margin="5 0 0 0"></TextBlock>
-                    </DockPanel>
-                </DataTemplate>
-            </ListBox.ItemTemplate>
-        </ListBox>
+        <ScrollViewer>
+            <ListBox x:Name="mediaList" 
+                 Template="{StaticResource listBoxTemplate}"
+                 ItemsSource="{Binding SelectedPlayList.MediaItems}" ItemTemplate="{StaticResource listTemplate}">
+            </ListBox>
+        </ScrollViewer>
 
         <GridSplitter Width="4" x:Name="gridSplitter" Style="{StaticResource MaterialDesignGridSplitter}" />
 

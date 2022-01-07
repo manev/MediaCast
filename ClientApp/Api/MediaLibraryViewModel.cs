@@ -3,11 +3,11 @@ using System.Windows.Forms;
 
 namespace MediaCast;
 
-internal class MediaLibrary : ViewModelBase
+internal class MediaLibraryViewModel : ViewModelBase
 {
     private readonly string[] _mediaFormatTypes = new[]
     {
-        ".WEBM", ".MPG", ".MP2", ".MPEG", ".MPE", ".MPV", ".OGG", ".MP4", ".M4P", ".M4V", ".AVI", ".WMV",".MOV", ".MKV", ".MP3", ".MP4", ".M3U"
+        ".WEBM", ".MPG", ".MP2", ".MPEG", ".MPE", ".MPV", ".OGG", ".MP4", ".M4P", ".M4V", ".AVI", ".WMV",".MOV", ".MKV", ".MP3", ".MP4", ".M3U", ".PLS"
     };
 
     private readonly string _libFileName = "PlayLists.json";
@@ -16,17 +16,6 @@ internal class MediaLibrary : ViewModelBase
     private MediaItem _selectedMedia;
 
     private string LibPath => Path.Combine(Directory.GetParent(Assembly.GetExecutingAssembly().Location).FullName, _libFileName);
-
-    public MediaLibrary LoadSavedPlayLists()
-    {
-        _userMediaLibrary = GetSavedPlayLists();
-
-        SelectedPlayList = _userMediaLibrary.SelectedPlayList;
-
-        OnPropertyChanged(nameof(MediaLibraries), nameof(SelectedPlayList));
-
-        return this;
-    }
 
     public ICommand CreatePlayListCommand
     {
@@ -77,20 +66,31 @@ internal class MediaLibrary : ViewModelBase
     {
         get
         {
-            return new ActionCommand(item => SelectedMediaItem = item as MediaItem);
+            return new ActionCommand(item =>
+            {
+                var mediaItem = item as MediaItem;
+
+                SelectedMediaItem = mediaItem;
+
+                if (!mediaItem.IsFile)
+                {
+                    _selectedMedia.IsExpanded = !_selectedMedia.IsExpanded;
+
+                    if (_selectedMedia.IsExpanded && !_selectedMedia.Items.Any())
+                    {
+                        var items = GetMediaItemsFromFolder(_selectedMedia.FullPath);
+
+                        _selectedMedia.Items.AddRange(new ObservableCollection<MediaItem>(items));
+                    }
+                }
+            });
         }
     }
 
     public MediaItem SelectedMediaItem
     {
-        get
-        {
-            return _selectedMedia;
-        }
-        set
-        {
-            SetField(ref _selectedMedia, value);
-        }
+        get => _selectedMedia;
+        set => SetField(ref _selectedMedia, value);
     }
 
     public PlayList SelectedPlayList
@@ -115,13 +115,26 @@ internal class MediaLibrary : ViewModelBase
         }
     }
 
+    public ObservableCollection<PlayList> MediaLibraries { get { return _userMediaLibrary.PlayLists; } }
+
+    public MediaLibraryViewModel LoadSavedPlayLists()
+    {
+        _userMediaLibrary = GetSavedPlayLists();
+
+        SelectedPlayList = _userMediaLibrary.SelectedPlayList;
+
+        OnPropertyChanged(nameof(MediaLibraries), nameof(SelectedPlayList));
+
+        return this;
+    }
+
     public void LoadUserSelectedFiles()
     {
         var paths = GetUserSelectedFiles();
 
         if (paths.Any())
         {
-            var files = GetMediaElements(paths);
+            var files = GetMediaItemsFromFilePaths(paths);
 
             _userMediaLibrary.AddMediaFilesToCurrentPlayList(files);
         }
@@ -133,15 +146,9 @@ internal class MediaLibrary : ViewModelBase
 
         if (!string.IsNullOrWhiteSpace(path))
         {
-            var paths = Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories);
-
-            var files = GetMediaElements(paths);
-
-            _userMediaLibrary.AddMediaFilesToCurrentPlayList(files);
+            _userMediaLibrary.AddMediaFilesToCurrentPlayList(GetMediaItemsFromFolder(path));
         }
     }
-
-    public ObservableCollection<PlayList> MediaLibraries { get { return _userMediaLibrary.PlayLists; } }
 
     public void Save()
     {
@@ -151,8 +158,6 @@ internal class MediaLibrary : ViewModelBase
     }
 
     public void DeleteCurrentLibrary() => _userMediaLibrary.SelectedPlayList.MediaItems.Clear();
-
-    public IEnumerable<MediaItem> LoadLibrary(string[] paths) => GetMediaElements(paths);
 
     public void Remove(MediaItem mediaElement)
     {
@@ -198,10 +203,15 @@ internal class MediaLibrary : ViewModelBase
         return result == DialogResult.OK ? dialog.SelectedPath : string.Empty;
     }
 
-    private IEnumerable<MediaItem> GetMediaElements(IEnumerable<string> paths) =>
+    private IEnumerable<MediaItem> GetMediaItemsFromFilePaths(IEnumerable<string> paths) =>
         paths?.Select(x => new FileInfo(x))
-              .Where(x => _mediaFormatTypes.Contains(x.Extension.ToUpper()))
+              .Where(x => x.Exists && _mediaFormatTypes.Contains(x.Extension.ToUpper()))
               .Select(x => new MediaItem(x.Name, x.FullName.Trim(), true)) ?? Enumerable.Empty<MediaItem>();
+
+    private IEnumerable<MediaItem> GetMediaItemsFromFolderPaths(IEnumerable<string> paths) =>
+        paths?.Select(x => new DirectoryInfo(x))
+              .Where(x => x.Exists)
+              .Select(x => new MediaItem(x.Name, x.FullName.Trim(), false)) ?? Enumerable.Empty<MediaItem>();
 
     private UserMediaLibrary GetSavedPlayLists()
     {
@@ -213,11 +223,22 @@ internal class MediaLibrary : ViewModelBase
                 UserMediaLibrary.Default :
                 JsonSerializer.Deserialize<UserMediaLibrary>(content) ?? UserMediaLibrary.Default;
 
-            mediaLibrary.RemoveDeletedFiles();
+            mediaLibrary.RemoveDeletedMediaItems();
 
             return mediaLibrary;
         }
 
         return UserMediaLibrary.Default;
+    }
+
+    private IEnumerable<MediaItem> GetMediaItemsFromFolder(string path)
+    {
+        var paths = Directory.EnumerateFiles(path);
+
+        var mediaItems = GetMediaItemsFromFilePaths(paths);
+
+        var folders = Directory.EnumerateDirectories(path);
+
+        return mediaItems.Union(GetMediaItemsFromFolderPaths(folders));
     }
 }
